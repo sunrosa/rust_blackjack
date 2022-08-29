@@ -102,6 +102,11 @@ fn main() {
 
                 match input.as_str() {
                     "hit" => {
+                        if player_hands.len() != 1 {
+                            println!("You cannot hit after splitting.");
+                            continue;
+                        }
+
                         deck.deal_to_hand(&mut player_hands[0], 1);
                         type_hand(&player_hands[0], &cfg);
 
@@ -120,22 +125,50 @@ fn main() {
 
                         type_hand(&dealer_hand, &cfg);
 
-                        let player_hand_value = hand_value(&player_hands[0]);
                         let dealer_hand_value = hand_value(&dealer_hand);
-                        if player_hand_value > 21 {
-                            results[0] = data::GameResult::Bust;
-                        } else if player_hand_value == 21 && player_hands[0].cards.len() == 2 {
-                            results[0] = data::GameResult::Blackjack;
-                        } else if dealer_hand_value > 21 && player_hand_value <= 21 {
-                            results[0] = data::GameResult::DealerBust;
-                        } else if player_hand_value > dealer_hand_value && player_hand_value <= 21 {
-                            results[0] = data::GameResult::Win;
-                        } else if player_hand_value == dealer_hand_value
-                            && !(player_hand_value == 21 && player_hands[0].cards.len() == 2)
-                        {
-                            results[0] = data::GameResult::Push;
-                        } else if player_hand_value < dealer_hand_value {
-                            results[0] = data::GameResult::Loss;
+                        for i in 0..player_hands.len() {
+                            let player_hand_value = hand_value(&player_hands[i]);
+                            if player_hand_value > 21 {
+                                if results.len() >= i + 1 {
+                                    results[i] = data::GameResult::Bust;
+                                } else {
+                                    results.push(data::GameResult::Bust);
+                                }
+                            } else if player_hand_value == 21 && player_hands[i].cards.len() == 2 {
+                                if results.len() >= i + 1 {
+                                    results[i] = data::GameResult::Blackjack;
+                                } else {
+                                    results.push(data::GameResult::Blackjack);
+                                }
+                            } else if dealer_hand_value > 21 && player_hand_value <= 21 {
+                                if results.len() >= i + 1 {
+                                    results[i] = data::GameResult::DealerBust;
+                                } else {
+                                    results.push(data::GameResult::DealerBust);
+                                }
+                            } else if player_hand_value > dealer_hand_value
+                                && player_hand_value <= 21
+                            {
+                                if results.len() >= i + 1 {
+                                    results[i] = data::GameResult::Win;
+                                } else {
+                                    results.push(data::GameResult::Win);
+                                }
+                            } else if player_hand_value == dealer_hand_value
+                                && !(player_hand_value == 21 && player_hands[i].cards.len() == 2)
+                            {
+                                if results.len() >= i + 1 {
+                                    results[i] = data::GameResult::Push;
+                                } else {
+                                    results.push(data::GameResult::Push);
+                                }
+                            } else if player_hand_value < dealer_hand_value {
+                                if results.len() >= i + 1 {
+                                    results[i] = data::GameResult::Loss;
+                                } else {
+                                    results.push(data::GameResult::Loss);
+                                }
+                            }
                         }
 
                         break;
@@ -144,6 +177,10 @@ fn main() {
                         // Exit if the player has already hit
                         if player_hands[0].cards.len() != 2 {
                             println!("Doubling down is only allowed before hitting.");
+                            continue;
+                        }
+                        if player_hands.len() != 1 {
+                            println!("You cannot double down after splitting.");
                             continue;
                         }
 
@@ -162,22 +199,32 @@ fn main() {
                             break;
                         }
                     }
-                    /*"split" => {
-                        if player_hands.cards.len() != 2
-                            || card_value(&player_hands.cards.get(0).unwrap())
-                                != card_value(&player_hands.cards.get(1).unwrap())
+                    "split" => {
+                        if player_hands[0].cards.len() != 2
+                            || card_value(&player_hands[0].cards.get(0).unwrap())
+                                != card_value(&player_hands[0].cards.get(1).unwrap())
                         {
-                            println!("You may only split when you have two cards of equal rank.")
+                            println!("You may only split when you have two cards of equal rank.");
+                            continue;
                         }
 
+                        // Subtract money for bet and print to the user
+                        typeln(&format!("(-{}{})", cfg.currency_prefix, bet), &cfg);
+                        stats.decrease_wallet(bet);
+                        stats.bet(bet);
+
                         // Split the hands in two
-                        player_hands.remove(0);
-                        player_hand_split = player_hands.clone();
+                        player_hands[0].remove(0);
+                        player_hands.push(player_hands[0].clone());
 
                         // Deal one card to each hand
-                        deck.deal_to_hand(&mut player_hands, 1);
-                        deck.deal_to_hand(&mut player_hand_split, 1);
-                    }*/
+                        deck.deal_to_hand(&mut player_hands[0], 1);
+                        deck.deal_to_hand(&mut player_hands[1], 1);
+
+                        // Print them to the user
+                        type_hand(&player_hands[0], &cfg);
+                        type_hand(&player_hands[1], &cfg);
+                    }
                     "help" => {
                         println!("hit: Receive an additional card for your hand.\nstand: Keep your current hand and advance the game.\ndouble: Double your bet and gain an additional card (can only be used before hitting for the first time).\nsplit: Split first two cards of same value into two separate hands, betting additionally for your second hand.\nhelp: Print help.\nquit: Quit the program.")
                     }
@@ -187,45 +234,54 @@ fn main() {
             }
         }
 
-        match results[0] {
-            data::GameResult::Win => {
-                typeln(&format!("Win! +({}{})", cfg.currency_prefix, bet), &cfg);
-                stats.increase_wallet(bet * 2);
-                stats.pure_win();
-            }
-            data::GameResult::Loss => {
-                typeln(&format!("Loss! -({}{})", cfg.currency_prefix, bet), &cfg);
-                stats.pure_loss();
-            }
-            data::GameResult::Blackjack => {
-                typeln(
-                    &format!("Blackjack!!! +({}{})", cfg.currency_prefix, bet),
-                    &cfg,
-                );
-                stats.increase_wallet(bet * 2);
-                stats.blackjack();
-            }
-            data::GameResult::Bust => {
-                typeln(&format!("Bust! -({}{})", cfg.currency_prefix, bet), &cfg);
-                stats.bust();
-            }
-            data::GameResult::Push => {
-                typeln(&String::from("Push!"), &cfg);
-                stats.increase_wallet(bet);
-                stats.push();
-            }
-            data::GameResult::DealerBust => {
-                typeln(
-                    &format!("Dealer bust! +({}{})", cfg.currency_prefix, bet),
-                    &cfg,
-                );
-                stats.increase_wallet(bet * 2);
-                stats.dealer_bust();
-            }
-            data::GameResult::Unfinished => {
-                panic!(
-                    "Game result should not be unfinished upon exit from game loop, and yet it is."
-                )
+        for i in 0..results.len() {
+            match results[i] {
+                data::GameResult::Win => {
+                    typeln(
+                        &format!("{}: Win! (+{}{})", i, cfg.currency_prefix, bet),
+                        &cfg,
+                    );
+                    stats.increase_wallet(bet * 2);
+                    stats.pure_win();
+                }
+                data::GameResult::Loss => {
+                    typeln(
+                        &format!("{}: Loss! (-{}{})", i, cfg.currency_prefix, bet),
+                        &cfg,
+                    );
+                    stats.pure_loss();
+                }
+                data::GameResult::Blackjack => {
+                    typeln(
+                        &format!("{}: Blackjack!!! (+{}{})", i, cfg.currency_prefix, bet),
+                        &cfg,
+                    );
+                    stats.increase_wallet(bet * 2);
+                    stats.blackjack();
+                }
+                data::GameResult::Bust => {
+                    typeln(
+                        &format!("{}: Bust! (-{}{})", i, cfg.currency_prefix, bet),
+                        &cfg,
+                    );
+                    stats.bust();
+                }
+                data::GameResult::Push => {
+                    typeln(&format!("{}: Push!", i), &cfg);
+                    stats.increase_wallet(bet);
+                    stats.push();
+                }
+                data::GameResult::DealerBust => {
+                    typeln(
+                        &format!("{}: Dealer bust! (+{}{})", i, cfg.currency_prefix, bet),
+                        &cfg,
+                    );
+                    stats.increase_wallet(bet * 2);
+                    stats.dealer_bust();
+                }
+                data::GameResult::Unfinished => {
+                    panic!("Game result should not be unfinished upon exit from game loop, and yet it is.")
+                }
             }
         }
         println!("========================");
