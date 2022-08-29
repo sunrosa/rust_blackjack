@@ -35,7 +35,7 @@ fn main() {
 
         // Input bet
         loop {
-            print!("Bet> ");
+            print!("Bet (or quit)> ");
             std::io::Write::flush(&mut std::io::stdout());
 
             let mut input = String::new();
@@ -54,6 +54,9 @@ fn main() {
                     }
                 }
                 Err(e) => {
+                    if input == String::from("quit") {
+                        quit(&cfg, &stats);
+                    }
                     println!("Please enter a valid integer.")
                 }
             }
