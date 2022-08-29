@@ -22,7 +22,7 @@ fn main() {
         let mut player_hand = deckofcards::Hand::new();
         let mut dealer_hand = deckofcards::Hand::new();
         let mut result = GameResult::Unfinished;
-        let mut bet = 0;
+        let bet: u32;
 
         // Initialize game
         deckofcards::Cards::shuffle(&mut deck);
@@ -36,7 +36,7 @@ fn main() {
         // Input bet
         loop {
             print!("Bet (or quit)> ");
-            std::io::Write::flush(&mut std::io::stdout());
+            std::io::Write::flush(&mut std::io::stdout()).expect("Could not flush stdio.");
 
             let mut input = String::new();
             std::io::stdin().read_line(&mut input);
@@ -50,6 +50,7 @@ fn main() {
                     } else {
                         bet = i;
                         stats.decrease_wallet(bet);
+                        stats.bet(bet);
                         break;
                     }
                 }
@@ -75,7 +76,7 @@ fn main() {
         loop {
             // Print prompt
             print!("> ");
-            std::io::Write::flush(&mut std::io::stdout());
+            std::io::Write::flush(&mut std::io::stdout()).expect("Could not flush stdio.");
 
             // Read and format user input
             let mut input = String::new();
@@ -192,6 +193,7 @@ struct Statistics {
     total_busts: u32,
     total_draws: u32,
     total_dealer_busts: u32,
+    average_bet: f32,
 }
 
 impl Statistics {
@@ -209,6 +211,7 @@ impl Statistics {
             total_busts: 0,
             total_draws: 0,
             total_dealer_busts: 0,
+            average_bet: 0.0,
         }
     }
 
@@ -248,6 +251,10 @@ impl Statistics {
         self.total_wins += 1;
         self.total_dealer_busts += 1;
         self.hands_played += 1;
+    }
+    fn bet(&mut self, amount: u32) {
+        self.average_bet = ((self.hands_played as f32 * self.average_bet) + amount as f32)
+            / (self.hands_played as f32 + 1.0)
     }
 }
 
@@ -320,11 +327,12 @@ fn quit(config: &Configuration, stats: &Statistics) {
     // Print statistics
     typeln(
         &String::from(format!(
-            "Final wallet: {wallet}\nHands played: {handsplayed}\nTotal won: {totalwon} / Total bet: {totalbet}\nWins: {wins} / Losses: {losses}\nPure wins: {pwins} / Pure losses: {plosses}\nBlackjacks: {blackjacks}\nBusts: {busts}\nDealer busts: {dbusts}",
+            "Final wallet: {wallet}\nHands played: {handsplayed}\nTotal won: {totalwon} / Total bet: {totalbet}\nAverage bet: {averagebet}\nWins: {wins} / Losses: {losses}\nPure wins: {pwins} / Pure losses: {plosses}\nBlackjacks: {blackjacks}\nBusts: {busts}\nDealer busts: {dbusts}",
             wallet = stats.wallet,
             handsplayed = stats.hands_played,
             totalwon = stats.total_won,
             totalbet = stats.total_bet,
+            averagebet = format!("{:.2}", stats.average_bet),
             wins = stats.total_wins,
             losses = stats.total_losses,
             pwins = stats.total_pure_wins,
