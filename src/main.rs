@@ -134,30 +134,30 @@ fn main() {
             GameResult::Win => {
                 typeln(&String::from("Win!"), &cfg);
                 stats.increase_wallet(bet * 2);
-                stats.won();
+                stats.pure_win();
             }
             GameResult::Loss => {
                 typeln(&String::from("Loss!"), &cfg);
-                stats.lost();
+                stats.pure_loss();
             }
             GameResult::Blackjack => {
                 typeln(&String::from("Blackjack!!!"), &cfg);
                 stats.increase_wallet(bet * 2);
-                stats.won();
+                stats.blackjack();
             }
             GameResult::Bust => {
                 typeln(&String::from("Bust!"), &cfg);
-                stats.lost();
+                stats.bust();
             }
             GameResult::Push => {
                 typeln(&String::from("Push!"), &cfg);
                 stats.increase_wallet(bet);
-                stats.drawn();
+                stats.push();
             }
             GameResult::DealerBust => {
                 typeln(&String::from("Dealer bust!"), &cfg);
                 stats.increase_wallet(bet * 2);
-                stats.won();
+                stats.dealer_bust();
             }
             GameResult::Unfinished => {
                 panic!(
@@ -183,7 +183,12 @@ struct Statistics {
     total_won: u32,
     total_wins: u32,
     total_losses: u32,
+    total_pure_wins: u32,
+    total_pure_losses: u32,
+    total_blackjacks: u32,
+    total_busts: u32,
     total_draws: u32,
+    total_dealer_busts: u32,
 }
 
 impl Statistics {
@@ -195,7 +200,12 @@ impl Statistics {
             total_won: 0,
             total_wins: 0,
             total_losses: 0,
+            total_pure_wins: 0,
+            total_pure_losses: 0,
+            total_blackjacks: 0,
+            total_busts: 0,
             total_draws: 0,
+            total_dealer_busts: 0,
         }
     }
 
@@ -207,16 +217,33 @@ impl Statistics {
         self.wallet -= amount;
         self.total_bet += amount;
     }
-    fn won(&mut self) {
+    fn pure_win(&mut self) {
         self.total_wins += 1;
+        self.total_pure_wins += 1;
         self.hands_played += 1;
     }
-    fn lost(&mut self) {
+    fn pure_loss(&mut self) {
         self.total_losses += 1;
+        self.total_pure_losses += 1;
         self.hands_played += 1;
     }
-    fn drawn(&mut self) {
+    fn blackjack(&mut self) {
+        self.total_wins += 1;
+        self.total_blackjacks += 1;
+        self.hands_played += 1;
+    }
+    fn bust(&mut self) {
+        self.total_losses += 1;
+        self.total_busts += 1;
+        self.hands_played += 1;
+    }
+    fn push(&mut self) {
         self.total_draws += 1;
+        self.hands_played += 1;
+    }
+    fn dealer_bust(&mut self) {
+        self.total_wins += 1;
+        self.total_dealer_busts += 1;
         self.hands_played += 1;
     }
 }
@@ -290,13 +317,18 @@ fn quit(config: &Configuration, stats: &Statistics) {
     // Print statistics
     typeln(
         &String::from(format!(
-            "Final wallet: {wallet}\nHands played: {handsplayed}\nTotal won: {totalwon}\nTotal bet: {totalbet}\nWins: {wins}\nLosses: {losses}",
+            "Final wallet: {wallet}\nHands played: {handsplayed}\nTotal won: {totalwon}\nTotal bet: {totalbet}\nWins: {wins}\nLosses: {losses}\nPure wins: {pwins}\nPure losses: {plosses}\nBlackjacks: {blackjacks}\nBusts: {busts}\nDealer busts: {dbusts}",
             wallet = stats.wallet,
             handsplayed = stats.hands_played,
             totalwon = stats.total_won,
             totalbet = stats.total_bet,
             wins = stats.total_wins,
-            losses = stats.total_losses
+            losses = stats.total_losses,
+            pwins = stats.total_pure_wins,
+            plosses = stats.total_pure_losses,
+            blackjacks = stats.total_blackjacks,
+            busts = stats.total_busts,
+            dbusts = stats.total_dealer_busts
         )),
         &config,
     );
