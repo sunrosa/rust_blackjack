@@ -14,7 +14,14 @@ fn main() {
     deck.deal_to_hand(&mut dealer_hand, 1);
     deck.deal_to_hand(&mut player_hand, 1);
     deck.deal_to_hand(&mut dealer_hand, 1);
-    type_hand(&player_hand, &cfg);
+    typeln(&String::from("Your hand:"), cfg.typing_delay);
+    type_hand(&player_hand, &cfg); // Print all cards in player hand
+    typeln(&String::new(), cfg.typing_delay);
+    typeln(&String::from("Dealer hand:"), cfg.typing_delay);
+    type_hand(
+        &deckofcards::Hand::from_cards(&dealer_hand.cards[0..1]),
+        &cfg,
+    ); // Print first card in dealer's hand
 }
 
 struct Config {
@@ -32,11 +39,11 @@ fn typeln(output: &String, delay: std::time::Duration) {
 }
 
 fn type_hand(hand: &deckofcards::Hand, config: &Config) {
+    typeln(&format!("({})", hand_value(&hand)), config.typing_delay);
     for card in &hand.cards {
         typeln(&card.name(), config.typing_delay);
         thread::sleep(config.typing_line_delay);
     }
-    typeln(&format!("{}", hand_value(&hand)), config.typing_delay);
 }
 
 fn hand_value(hand: &deckofcards::Hand) -> u8 {
