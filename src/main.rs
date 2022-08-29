@@ -2,19 +2,19 @@ use std::{thread, time::Duration};
 
 fn main() {
     // Define game state
-    let cfg = Config {
+    let cfg = Configuration {
         typing_delay: std::time::Duration::from_millis(15),
         typing_line_delay: Duration::from_millis(75),
         starting_wallet: 100,
         minimum_bet: 5,
     };
-    let mut wallet = cfg.starting_wallet;
+    let mut stats = Statistics::new(&cfg);
 
     // Hand loop
     loop {
-        if wallet < cfg.minimum_bet {
+        if stats.wallet < cfg.minimum_bet {
             typeln(&String::from("Game over!"), &cfg);
-            break;
+            quit(&cfg, &stats);
         }
 
         // Define game state
@@ -31,7 +31,7 @@ fn main() {
         deck.deal_to_hand(&mut player_hand, 1);
         deck.deal_to_hand(&mut dealer_hand, 1);
 
-        typeln(&format!("Wallet: {}", wallet), &cfg);
+        typeln(&format!("Wallet: {}", stats.wallet), &cfg);
 
         // Input bet
         loop {
@@ -45,11 +45,11 @@ fn main() {
                 Ok(i) => {
                     if i < cfg.minimum_bet {
                         println!("You must bet above the minimum bet of {}.", cfg.minimum_bet);
-                    } else if i > wallet {
-                        println!("You only have {} left in your wallet.", wallet)
+                    } else if i > stats.wallet {
+                        println!("You only have {} left in your wallet.", stats.wallet)
                     } else {
                         bet = i;
-                        wallet -= bet;
+                        stats.decrease_wallet(bet);
                         break;
                     }
                 }
@@ -122,7 +122,7 @@ fn main() {
                 "help" => {
                     println!("hit: Receive an additional card for your hand.\nstand: Keep your current hand and advance the game.\nhelp: Print help.\nquit: Quit the program.")
                 }
-                "quit" => quit(),
+                "quit" => quit(&cfg, &stats),
                 _ => println!("Invalid command! Type \"help\" for more information."),
             }
         }
@@ -130,21 +130,31 @@ fn main() {
         match result {
             GameResult::Win => {
                 typeln(&String::from("Win!"), &cfg);
-                wallet += bet * 2;
+                stats.increase_wallet(bet * 2);
+                stats.won();
             }
-            GameResult::Loss => typeln(&String::from("Loss!"), &cfg),
+            GameResult::Loss => {
+                typeln(&String::from("Loss!"), &cfg);
+                stats.lost();
+            }
             GameResult::Blackjack => {
                 typeln(&String::from("Blackjack!!!"), &cfg);
-                wallet += bet * 2;
+                stats.increase_wallet(bet * 2);
+                stats.won();
             }
-            GameResult::Bust => typeln(&String::from("Bust!"), &cfg),
+            GameResult::Bust => {
+                typeln(&String::from("Bust!"), &cfg);
+                stats.lost();
+            }
             GameResult::Push => {
                 typeln(&String::from("Push!"), &cfg);
-                wallet += bet;
+                stats.increase_wallet(bet);
+                stats.drawn();
             }
             GameResult::DealerBust => {
                 typeln(&String::from("Dealer bust!"), &cfg);
-                wallet += bet * 2;
+                stats.increase_wallet(bet * 2);
+                stats.won();
             }
             GameResult::Unfinished => {
                 panic!(
@@ -152,15 +162,60 @@ fn main() {
                 )
             }
         }
-        println!("================")
+        println!("================");
     }
 }
 
-struct Config {
+struct Configuration {
     typing_delay: std::time::Duration,
     typing_line_delay: std::time::Duration,
     starting_wallet: i32,
     minimum_bet: i32,
+}
+
+struct Statistics {
+    wallet: i32,
+    hands_played: i32,
+    total_bet: i32,
+    total_won: i32,
+    total_wins: i32,
+    total_losses: i32,
+    total_draws: i32,
+}
+
+impl Statistics {
+    fn new(config: &Configuration) -> Statistics {
+        Statistics {
+            wallet: config.starting_wallet,
+            hands_played: 0,
+            total_bet: 0,
+            total_won: 0,
+            total_wins: 0,
+            total_losses: 0,
+            total_draws: 0,
+        }
+    }
+
+    fn increase_wallet(&mut self, amount: i32) {
+        self.wallet += amount;
+        self.total_won += amount;
+    }
+    fn decrease_wallet(&mut self, amount: i32) {
+        self.wallet -= amount;
+        self.total_bet += amount;
+    }
+    fn won(&mut self) {
+        self.total_wins += 1;
+        self.hands_played += 1;
+    }
+    fn lost(&mut self) {
+        self.total_losses += 1;
+        self.hands_played += 1;
+    }
+    fn drawn(&mut self) {
+        self.total_draws += 1;
+        self.hands_played += 1;
+    }
 }
 
 enum GameResult {
@@ -173,7 +228,7 @@ enum GameResult {
     Unfinished,
 }
 
-fn typeln(output: &String, config: &Config) {
+fn typeln(output: &String, config: &Configuration) {
     for c in output.chars() {
         print!("{}", c);
         std::io::Write::flush(&mut std::io::stdout()).unwrap();
@@ -183,7 +238,7 @@ fn typeln(output: &String, config: &Config) {
     std::thread::sleep(config.typing_line_delay);
 }
 
-fn type_hand(hand: &deckofcards::Hand, config: &Config) {
+fn type_hand(hand: &deckofcards::Hand, config: &Configuration) {
     typeln(&format!("({})", hand_value(&hand)), &config);
     for card in &hand.cards {
         typeln(&card.name(), &config);
@@ -228,6 +283,20 @@ fn hand_value(hand: &deckofcards::Hand) -> u8 {
     value
 }
 
-fn quit() {
+fn quit(config: &Configuration, stats: &Statistics) {
+    // Print statistics
+    typeln(
+        &String::from(format!(
+            "Final wallet: {wallet}\nHands played: {handsplayed}\nTotal won: {totalwon}\nTotal bet: {totalbet}\nWins: {wins}\nLosses: {losses}",
+            wallet = stats.wallet,
+            handsplayed = stats.hands_played,
+            totalwon = stats.total_won,
+            totalbet = stats.total_bet,
+            wins = stats.total_wins,
+            losses = stats.total_losses
+        )),
+        &config,
+    );
+
     std::process::exit(0);
 }
