@@ -1,18 +1,20 @@
+mod data;
+
 use std::{thread, time::Duration};
 
 fn main() {
     // Define game state
-    let cfg = Configuration {
+    let cfg = data::Configuration {
         typing_delay: std::time::Duration::from_millis(15),
         typing_line_delay: Duration::from_millis(75),
         starting_wallet: 100,
         minimum_bet: 5,
     };
-    let mut stats = Statistics::new(&cfg);
+    let mut stats = data::Statistics::new(&cfg);
 
     // Hand loop
     loop {
-        if stats.wallet < cfg.minimum_bet {
+        if stats.get_wallet() < cfg.minimum_bet {
             typeln(&String::from("Game over!"), &cfg);
             quit(&cfg, &stats);
         }
@@ -31,7 +33,7 @@ fn main() {
         deck.deal_to_hand(&mut player_hand, 1);
         deck.deal_to_hand(&mut dealer_hand, 1);
 
-        typeln(&format!("Wallet: {}", stats.wallet), &cfg);
+        typeln(&format!("Wallet: {}", stats.get_wallet()), &cfg);
 
         // Input bet
         loop {
@@ -45,8 +47,8 @@ fn main() {
                 Ok(i) => {
                     if i < cfg.minimum_bet {
                         println!("You must bet above the minimum bet of {}.", cfg.minimum_bet);
-                    } else if i > stats.wallet {
-                        println!("You only have {} left in your wallet.", stats.wallet)
+                    } else if i > stats.get_wallet() {
+                        println!("You only have {} left in your wallet.", stats.get_wallet())
                     } else {
                         bet = i;
                         stats.decrease_wallet(bet);
@@ -173,91 +175,6 @@ fn main() {
     }
 }
 
-struct Configuration {
-    typing_delay: std::time::Duration,
-    typing_line_delay: std::time::Duration,
-    starting_wallet: u32,
-    minimum_bet: u32,
-}
-
-struct Statistics {
-    wallet: u32,
-    hands_played: u32,
-    total_bet: u32,
-    total_won: u32,
-    total_wins: u32,
-    total_losses: u32,
-    total_pure_wins: u32,
-    total_pure_losses: u32,
-    total_blackjacks: u32,
-    total_busts: u32,
-    total_draws: u32,
-    total_dealer_busts: u32,
-    average_bet: f32,
-}
-
-impl Statistics {
-    fn new(config: &Configuration) -> Statistics {
-        Statistics {
-            wallet: config.starting_wallet,
-            hands_played: 0,
-            total_bet: 0,
-            total_won: 0,
-            total_wins: 0,
-            total_losses: 0,
-            total_pure_wins: 0,
-            total_pure_losses: 0,
-            total_blackjacks: 0,
-            total_busts: 0,
-            total_draws: 0,
-            total_dealer_busts: 0,
-            average_bet: 0.0,
-        }
-    }
-
-    fn increase_wallet(&mut self, amount: u32) {
-        self.wallet += amount;
-        self.total_won += amount;
-    }
-    fn decrease_wallet(&mut self, amount: u32) {
-        self.wallet -= amount;
-        self.total_bet += amount;
-    }
-    fn pure_win(&mut self) {
-        self.total_wins += 1;
-        self.total_pure_wins += 1;
-        self.hands_played += 1;
-    }
-    fn pure_loss(&mut self) {
-        self.total_losses += 1;
-        self.total_pure_losses += 1;
-        self.hands_played += 1;
-    }
-    fn blackjack(&mut self) {
-        self.total_wins += 1;
-        self.total_blackjacks += 1;
-        self.hands_played += 1;
-    }
-    fn bust(&mut self) {
-        self.total_losses += 1;
-        self.total_busts += 1;
-        self.hands_played += 1;
-    }
-    fn push(&mut self) {
-        self.total_draws += 1;
-        self.hands_played += 1;
-    }
-    fn dealer_bust(&mut self) {
-        self.total_wins += 1;
-        self.total_dealer_busts += 1;
-        self.hands_played += 1;
-    }
-    fn bet(&mut self, amount: u32) {
-        self.average_bet = ((self.hands_played as f32 * self.average_bet) + amount as f32)
-            / (self.hands_played as f32 + 1.0)
-    }
-}
-
 enum GameResult {
     Win,
     Loss,
@@ -268,7 +185,7 @@ enum GameResult {
     Unfinished,
 }
 
-fn typeln(output: &String, config: &Configuration) {
+fn typeln(output: &String, config: &data::Configuration) {
     for c in output.chars() {
         print!("{}", c);
         std::io::Write::flush(&mut std::io::stdout()).unwrap();
@@ -278,7 +195,7 @@ fn typeln(output: &String, config: &Configuration) {
     std::thread::sleep(config.typing_line_delay);
 }
 
-fn type_hand(hand: &deckofcards::Hand, config: &Configuration) {
+fn type_hand(hand: &deckofcards::Hand, config: &data::Configuration) {
     typeln(&format!("({})", hand_value(&hand)), &config);
     for card in &hand.cards {
         typeln(&card.name(), &config);
@@ -323,23 +240,23 @@ fn hand_value(hand: &deckofcards::Hand) -> u8 {
     value
 }
 
-fn quit(config: &Configuration, stats: &Statistics) {
+fn quit(config: &data::Configuration, stats: &data::Statistics) {
     // Print statistics
     typeln(
         &String::from(format!(
             "Final wallet: {wallet}\nHands played: {handsplayed}\nTotal won: {totalwon} / Total bet: {totalbet}\nAverage bet: {averagebet}\nWins: {wins} / Losses: {losses}\nPure wins: {pwins} / Pure losses: {plosses}\nBlackjacks: {blackjacks}\nBusts: {busts}\nDealer busts: {dbusts}",
-            wallet = stats.wallet,
-            handsplayed = stats.hands_played,
-            totalwon = stats.total_won,
-            totalbet = stats.total_bet,
-            averagebet = format!("{:.2}", stats.average_bet),
-            wins = stats.total_wins,
-            losses = stats.total_losses,
-            pwins = stats.total_pure_wins,
-            plosses = stats.total_pure_losses,
-            blackjacks = stats.total_blackjacks,
-            busts = stats.total_busts,
-            dbusts = stats.total_dealer_busts
+            wallet = stats.get_wallet(),
+            handsplayed = stats.get_hands_played(),
+            totalwon = stats.get_total_won(),
+            totalbet = stats.get_total_bet(),
+            averagebet = format!("{:.2}", stats.get_average_bet()),
+            wins = stats.get_total_wins(),
+            losses = stats.get_total_losses(),
+            pwins = stats.get_total_pure_wins(),
+            plosses = stats.get_total_pure_losses(),
+            blackjacks = stats.get_total_blackjacks(),
+            busts = stats.get_total_busts(),
+            dbusts = stats.get_total_dealer_busts()
         )),
         &config,
     );
