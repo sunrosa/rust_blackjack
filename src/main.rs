@@ -87,6 +87,9 @@ fn main() {
                     if hand_value(&player_hand) > 21 {
                         result = GameResult::Bust;
                         break;
+                    } else if hand_value(&player_hand) == 21 && player_hand.cards.len() == 2 {
+                        result = GameResult::Blackjack;
+                        break;
                     }
                 }
                 "stand" => {
