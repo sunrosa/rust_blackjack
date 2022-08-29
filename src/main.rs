@@ -26,8 +26,7 @@ fn main() {
         let mut deck = deckofcards::Deck::new();
         let mut player_hands = vec![deckofcards::Hand::new()];
         let mut dealer_hand = deckofcards::Hand::new();
-        let mut result = data::GameResult::Unfinished;
-        let mut result_split: data::GameResult;
+        let mut results = vec![data::GameResult::Unfinished];
         let mut bet: u32;
 
         // Initialize game
@@ -84,10 +83,10 @@ fn main() {
         ); // Print first card only in dealer's hand
 
         if hand_value(&player_hands[0]) == 21 && player_hands[0].cards.len() as u8 == 2 {
-            result = data::GameResult::Blackjack;
+            results[0] = data::GameResult::Blackjack;
         }
         // Command loop
-        if result == data::GameResult::Unfinished {
+        if results[0] == data::GameResult::Unfinished {
             loop {
                 // Print prompt
                 print!("> ");
@@ -106,7 +105,7 @@ fn main() {
                         type_hand(&player_hands[0], &cfg);
 
                         if hand_value(&player_hands[0]) > 21 {
-                            result = data::GameResult::Bust;
+                            results[0] = data::GameResult::Bust;
                             break;
                         }
                     }
@@ -123,19 +122,19 @@ fn main() {
                         let player_hand_value = hand_value(&player_hands[0]);
                         let dealer_hand_value = hand_value(&dealer_hand);
                         if player_hand_value > 21 {
-                            result = data::GameResult::Bust;
+                            results[0] = data::GameResult::Bust;
                         } else if player_hand_value == 21 && player_hands[0].cards.len() == 2 {
-                            result = data::GameResult::Blackjack;
+                            results[0] = data::GameResult::Blackjack;
                         } else if dealer_hand_value > 21 && player_hand_value <= 21 {
-                            result = data::GameResult::DealerBust;
+                            results[0] = data::GameResult::DealerBust;
                         } else if player_hand_value > dealer_hand_value && player_hand_value <= 21 {
-                            result = data::GameResult::Win;
+                            results[0] = data::GameResult::Win;
                         } else if player_hand_value == dealer_hand_value
                             && !(player_hand_value == 21 && player_hands[0].cards.len() == 2)
                         {
-                            result = data::GameResult::Push;
+                            results[0] = data::GameResult::Push;
                         } else if player_hand_value < dealer_hand_value {
-                            result = data::GameResult::Loss;
+                            results[0] = data::GameResult::Loss;
                         }
 
                         break;
@@ -158,7 +157,7 @@ fn main() {
 
                         // Bust automatically if over 21
                         if hand_value(&player_hands[0]) > 21 {
-                            result = data::GameResult::Bust;
+                            results[0] = data::GameResult::Bust;
                             break;
                         }
                     }
@@ -187,7 +186,7 @@ fn main() {
             }
         }
 
-        match result {
+        match results[0] {
             data::GameResult::Win => {
                 typeln(&format!("Win! +({}{})", cfg.currency_prefix, bet), &cfg);
                 stats.increase_wallet(bet * 2);
