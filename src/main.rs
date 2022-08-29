@@ -2,93 +2,106 @@ use std::{thread, time::Duration};
 
 fn main() {
     // Define game state
-    let mut deck = deckofcards::Deck::new();
-    let mut player_hand = deckofcards::Hand::new();
-    let mut dealer_hand = deckofcards::Hand::new();
-    let mut result = GameResult::Unfinished;
     let cfg = Config {
         typing_delay: std::time::Duration::from_millis(15),
         typing_line_delay: Duration::from_millis(75),
     };
 
-    // Initialize game
-    deckofcards::Cards::shuffle(&mut deck);
-    deck.deal_to_hand(&mut player_hand, 1);
-    deck.deal_to_hand(&mut dealer_hand, 1);
-    deck.deal_to_hand(&mut player_hand, 1);
-    deck.deal_to_hand(&mut dealer_hand, 1);
-
-    // Print initial game state to user
-    typeln(&String::from("Your hand:"), &cfg);
-    type_hand(&player_hand, &cfg); // Print all cards in player hand
-    typeln(&String::from("Dealer hand:"), &cfg);
-    type_hand(
-        &deckofcards::Hand::from_cards(&dealer_hand.cards[0..1]),
-        &cfg,
-    ); // Print first card only in dealer's hand
-
-    // Game loop
+    // Hand loop
     loop {
-        // Print prompt
-        print!("> ");
-        std::io::Write::flush(&mut std::io::stdout());
+        // Define game state
+        let mut deck = deckofcards::Deck::new();
+        let mut player_hand = deckofcards::Hand::new();
+        let mut dealer_hand = deckofcards::Hand::new();
+        let mut result = GameResult::Unfinished;
 
-        // Read and format user input
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input);
-        input = String::from(input.trim());
+        // Initialize game
+        deckofcards::Cards::shuffle(&mut deck);
+        deck.deal_to_hand(&mut player_hand, 1);
+        deck.deal_to_hand(&mut dealer_hand, 1);
+        deck.deal_to_hand(&mut player_hand, 1);
+        deck.deal_to_hand(&mut dealer_hand, 1);
 
-        match input.as_str() {
-            "hit" => {
-                deck.deal_to_hand(&mut player_hand, 1);
-                type_hand(&player_hand, &cfg);
-            }
-            "stand" => {
-                typeln(&String::from("Dealer hand:"), &cfg);
+        // Print initial game state to user
+        typeln(&String::from("Your hand:"), &cfg);
+        type_hand(&player_hand, &cfg); // Print all cards in player hand
+        typeln(&String::from("Dealer hand:"), &cfg);
+        type_hand(
+            &deckofcards::Hand::from_cards(&dealer_hand.cards[0..1]),
+            &cfg,
+        ); // Print first card only in dealer's hand
 
-                // Dealer hit below 16
-                while hand_value(&dealer_hand) <= 16 {
-                    deck.deal_to_hand(&mut dealer_hand, 1);
+        // Command loop
+        loop {
+            // Print prompt
+            print!("> ");
+            std::io::Write::flush(&mut std::io::stdout());
+
+            // Read and format user input
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input);
+            input = String::from(input.trim());
+
+            match input.as_str() {
+                "hit" => {
+                    deck.deal_to_hand(&mut player_hand, 1);
+                    type_hand(&player_hand, &cfg);
+
+                    if hand_value(&player_hand) > 21 {
+                        result = GameResult::Bust;
+                        break;
+                    }
                 }
+                "stand" => {
+                    typeln(&String::from("Dealer hand:"), &cfg);
 
-                type_hand(&dealer_hand, &cfg);
+                    // Dealer hit below 16
+                    while hand_value(&dealer_hand) <= 16 {
+                        deck.deal_to_hand(&mut dealer_hand, 1);
+                    }
 
-                let player_hand_value = hand_value(&player_hand);
-                let dealer_hand_value = hand_value(&dealer_hand);
-                if player_hand_value > 21 {
-                    result = GameResult::Bust;
-                } else if dealer_hand_value > 21 && player_hand_value <= 21 {
-                    result = GameResult::DealerBust;
-                } else if player_hand_value == 21 && player_hand.cards.len() == 2 {
-                    result = GameResult::Blackjack;
-                } else if player_hand_value > dealer_hand_value && player_hand_value <= 21 {
-                    result = GameResult::Win;
-                } else if player_hand_value == dealer_hand_value {
-                    result = GameResult::Push;
-                } else if player_hand_value < dealer_hand_value {
-                    result = GameResult::Loss;
+                    type_hand(&dealer_hand, &cfg);
+
+                    let player_hand_value = hand_value(&player_hand);
+                    let dealer_hand_value = hand_value(&dealer_hand);
+                    if player_hand_value > 21 {
+                        result = GameResult::Bust;
+                    } else if player_hand_value == 21 && player_hand.cards.len() == 2 {
+                        result = GameResult::Blackjack;
+                    } else if dealer_hand_value > 21 && player_hand_value <= 21 {
+                        result = GameResult::DealerBust;
+                    } else if player_hand_value > dealer_hand_value && player_hand_value <= 21 {
+                        result = GameResult::Win;
+                    } else if player_hand_value == dealer_hand_value {
+                        result = GameResult::Push;
+                    } else if player_hand_value < dealer_hand_value {
+                        result = GameResult::Loss;
+                    }
+
+                    break;
                 }
-
-                break;
+                "help" => {
+                    println!("hit: Receive an additional card for your hand.\nstand: Keep your current hand and advance the game.\nhelp: Print help.\nquit: Quit the program.")
+                }
+                "quit" => quit(),
+                _ => println!("Invalid command! Type \"help\" for more information."),
             }
-            "help" => {
-                println!("hit: Receive an additional card for your hand.\nstand: Keep your current hand and advance the game.\nhelp: Print help.\nquit: Quit the program.")
-            }
-            "quit" => quit(),
-            _ => println!("Invalid command! Type \"help\" for more information."),
         }
-    }
 
-    match result {
-        GameResult::Win => typeln(&String::from("Win!"), &cfg),
-        GameResult::Loss => typeln(&String::from("Loss!"), &cfg),
-        GameResult::Blackjack => typeln(&String::from("Blackjack!!!"), &cfg),
-        GameResult::Bust => typeln(&String::from("Bust!"), &cfg),
-        GameResult::Push => typeln(&String::from("Push!"), &cfg),
-        GameResult::DealerBust => typeln(&String::from("Dealer bust!"), &cfg),
-        GameResult::Unfinished => {
-            panic!("Game result should not be unfinished upon exit from game loop, and yet it is.")
+        match result {
+            GameResult::Win => typeln(&String::from("Win!"), &cfg),
+            GameResult::Loss => typeln(&String::from("Loss!"), &cfg),
+            GameResult::Blackjack => typeln(&String::from("Blackjack!!!"), &cfg),
+            GameResult::Bust => typeln(&String::from("Bust!"), &cfg),
+            GameResult::Push => typeln(&String::from("Push!"), &cfg),
+            GameResult::DealerBust => typeln(&String::from("Dealer bust!"), &cfg),
+            GameResult::Unfinished => {
+                panic!(
+                    "Game result should not be unfinished upon exit from game loop, and yet it is."
+                )
+            }
         }
+        println!("================")
     }
 }
 
@@ -153,7 +166,7 @@ fn hand_value(hand: &deckofcards::Hand) -> u8 {
         .try_into()
         .unwrap();
     for _ in 0..ace_count {
-        if value >= 21 {
+        if value + 11 > 21 {
             value += 1
         } else {
             value += 11
