@@ -184,6 +184,12 @@ fn main() {
                             continue;
                         }
 
+                        // Check if the wallet has enough money to double the bet
+                        if stats.get_wallet() < bet {
+                            println!("You don't have enough money to double down.");
+                            continue;
+                        }
+
                         // Double the bet
                         stats.decrease_wallet(bet);
                         stats.bet(bet);
