@@ -214,6 +214,12 @@ fn main() {
                             continue;
                         }
 
+                        // Check if the wallet has enough money to double the bet
+                        if stats.get_wallet() < bet {
+                            println!("You don't have enough money to split.");
+                            continue;
+                        }
+
                         // Subtract money for bet and print to the user
                         typeln(&format!("(-{}{})", cfg.currency_prefix, bet), &cfg);
                         stats.decrease_wallet(bet);
@@ -370,8 +376,9 @@ fn quit(config: &data::Configuration, stats: &data::Statistics) {
     // Print statistics
     typeln(
         &String::from(format!(
-            "Final wallet: {cur_prefix}{wallet}\nHands played: {handsplayed}\nTotal won: {cur_prefix}{totalwon} / Total bet: {cur_prefix}{totalbet}\nAverage bet: {cur_prefix}{averagebet}\nWins: {wins} / Draws: {draws} / Losses: {losses}\nPure wins: {pwins} / Pure losses: {plosses}\nBlackjacks: {blackjacks}\nBusts: {busts}\nDealer busts: {dbusts}",
+            "Final wallet: {cur_prefix}{wallet} / Highscore: {cur_prefix}{highest_wallet}\nHands played: {handsplayed}\nTotal won: {cur_prefix}{totalwon} / Total bet: {cur_prefix}{totalbet}\nAverage bet: {cur_prefix}{averagebet}\nWins: {wins} / Draws: {draws} / Losses: {losses}\nPure wins: {pwins} / Pure losses: {plosses}\nBlackjacks: {blackjacks}\nBusts: {busts}\nDealer busts: {dbusts}",
             wallet = stats.get_wallet(),
+            highest_wallet = stats.get_highest_wallet(),
             handsplayed = stats.get_hands_played(),
             totalwon = stats.get_total_won(),
             totalbet = stats.get_total_bet(),

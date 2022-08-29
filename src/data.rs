@@ -12,6 +12,7 @@ pub struct Statistics {
     total_draws: u32,
     total_dealer_busts: u32,
     average_bet: f32,
+    highest_wallet: u32,
 }
 
 impl Statistics {
@@ -30,12 +31,18 @@ impl Statistics {
             total_draws: 0,
             total_dealer_busts: 0,
             average_bet: 0.0,
+            highest_wallet: config.starting_wallet,
         }
     }
 
     pub fn increase_wallet(&mut self, amount: u32) {
         self.wallet += amount;
         self.total_won += amount;
+
+        // Set highest wallet (most amount of money had) if it's inaccurate
+        if self.highest_wallet < self.wallet {
+            self.highest_wallet = self.wallet;
+        }
     }
     pub fn decrease_wallet(&mut self, amount: u32) {
         self.wallet -= amount;
@@ -76,6 +83,9 @@ impl Statistics {
     }
     pub fn get_wallet(&self) -> u32 {
         self.wallet
+    }
+    pub fn get_highest_wallet(&self) -> u32 {
+        self.highest_wallet
     }
     pub fn get_hands_played(&self) -> u32 {
         self.hands_played
