@@ -1,27 +1,95 @@
 use std::{thread, time::Duration};
 
 fn main() {
+    // Define game state
     let mut deck = deckofcards::Deck::new();
     let mut player_hand = deckofcards::Hand::new();
     let mut dealer_hand = deckofcards::Hand::new();
+    let mut result = GameResult::Unfinished;
     let cfg = Config {
-        typing_delay: std::time::Duration::from_millis(40),
-        typing_line_delay: Duration::from_millis(100),
+        typing_delay: std::time::Duration::from_millis(15),
+        typing_line_delay: Duration::from_millis(75),
     };
 
+    // Initialize game
     deckofcards::Cards::shuffle(&mut deck);
     deck.deal_to_hand(&mut player_hand, 1);
     deck.deal_to_hand(&mut dealer_hand, 1);
     deck.deal_to_hand(&mut player_hand, 1);
     deck.deal_to_hand(&mut dealer_hand, 1);
-    typeln(&String::from("Your hand:"), cfg.typing_delay);
+
+    // Print initial game state to user
+    typeln(&String::from("Your hand:"), &cfg);
     type_hand(&player_hand, &cfg); // Print all cards in player hand
-    typeln(&String::new(), cfg.typing_delay);
-    typeln(&String::from("Dealer hand:"), cfg.typing_delay);
+    typeln(&String::from("Dealer hand:"), &cfg);
     type_hand(
         &deckofcards::Hand::from_cards(&dealer_hand.cards[0..1]),
         &cfg,
-    ); // Print first card in dealer's hand
+    ); // Print first card only in dealer's hand
+
+    // Game loop
+    loop {
+        // Print prompt
+        print!("> ");
+        std::io::Write::flush(&mut std::io::stdout());
+
+        // Read and format user input
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input);
+        input = String::from(input.trim());
+
+        match input.as_str() {
+            "hit" => {
+                deck.deal_to_hand(&mut player_hand, 1);
+                type_hand(&player_hand, &cfg);
+            }
+            "stand" => {
+                typeln(&String::from("Dealer hand:"), &cfg);
+
+                // Dealer hit below 16
+                while hand_value(&dealer_hand) <= 16 {
+                    deck.deal_to_hand(&mut dealer_hand, 1);
+                }
+
+                type_hand(&dealer_hand, &cfg);
+
+                let player_hand_value = hand_value(&player_hand);
+                let dealer_hand_value = hand_value(&dealer_hand);
+                if player_hand_value > 21 {
+                    result = GameResult::Bust;
+                } else if dealer_hand_value > 21 && player_hand_value <= 21 {
+                    result = GameResult::DealerBust;
+                } else if player_hand_value == 21 && player_hand.cards.len() == 2 {
+                    result = GameResult::Blackjack;
+                } else if player_hand_value > dealer_hand_value && player_hand_value <= 21 {
+                    result = GameResult::Win;
+                } else if player_hand_value == dealer_hand_value {
+                    result = GameResult::Push;
+                } else if player_hand_value < dealer_hand_value {
+                    result = GameResult::Loss;
+                }
+
+                break;
+            }
+            "help" => {
+                println!("hit: Receive an additional card for your hand.\nstand: Keep your current hand and advance the game.\nhelp: Print help.\nquit: Quit the program.")
+            }
+            "quit" => quit(),
+            _ => println!("Invalid command! Type \"help\" for more information."),
+        }
+    }
+
+    match result {
+        GameResult::Win => typeln(&String::from("Win!"), &cfg),
+        GameResult::Loss => typeln(&String::from("Loss!"), &cfg),
+        GameResult::Blackjack => typeln(&String::from("Blackjack!!!"), &cfg),
+        GameResult::Bust => typeln(&String::from("Bust!"), &cfg),
+        GameResult::Push => typeln(&String::from("Push!"), &cfg),
+        GameResult::DealerBust => typeln(&String::from("Dealer bust!"), &cfg),
+        GameResult::Unfinished => {
+            panic!("Game result should not be unfinished upon exit from game loop, and yet it is.")
+        }
+    }
 }
 
 struct Config {
@@ -29,21 +97,33 @@ struct Config {
     typing_line_delay: std::time::Duration,
 }
 
-fn typeln(output: &String, delay: std::time::Duration) {
+enum GameResult {
+    Win,
+    Loss,
+    Blackjack,
+    Bust,
+    Push,
+    DealerBust,
+    Unfinished,
+}
+
+fn typeln(output: &String, config: &Config) {
     for c in output.chars() {
         print!("{}", c);
         std::io::Write::flush(&mut std::io::stdout()).unwrap();
-        std::thread::sleep(delay);
+        std::thread::sleep(config.typing_delay);
     }
     println!();
+    std::thread::sleep(config.typing_line_delay);
 }
 
 fn type_hand(hand: &deckofcards::Hand, config: &Config) {
-    typeln(&format!("({})", hand_value(&hand)), config.typing_delay);
+    typeln(&format!("({})", hand_value(&hand)), &config);
     for card in &hand.cards {
-        typeln(&card.name(), config.typing_delay);
+        typeln(&card.name(), &config);
         thread::sleep(config.typing_line_delay);
     }
+    typeln(&String::new(), &config);
 }
 
 fn hand_value(hand: &deckofcards::Hand) -> u8 {
@@ -80,4 +160,8 @@ fn hand_value(hand: &deckofcards::Hand) -> u8 {
         }
     }
     value
+}
+
+fn quit() {
+    std::process::exit(0);
 }
