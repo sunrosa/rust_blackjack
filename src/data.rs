@@ -92,6 +92,9 @@ impl Statistics {
     pub fn get_total_wins(&self) -> u32 {
         self.total_wins
     }
+    pub fn get_total_draws(&self) -> u32 {
+        self.total_draws
+    }
     pub fn get_total_losses(&self) -> u32 {
         self.total_losses
     }
