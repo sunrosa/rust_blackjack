@@ -61,6 +61,7 @@ fn main() {
                         bet = i;
                         stats.decrease_wallet(bet);
                         stats.bet(bet);
+                        println!();
                         break;
                     }
                 }
@@ -227,7 +228,7 @@ fn main() {
                 )
             }
         }
-        println!("================");
+        println!("========================");
     }
 }
 
@@ -242,9 +243,9 @@ fn typeln(output: &String, config: &data::Configuration) {
 }
 
 fn type_hand(hand: &deckofcards::Hand, config: &data::Configuration) {
-    typeln(&format!("({})", hand_value(&hand)), &config);
+    typeln(&format!("|({})", hand_value(&hand)), &config);
     for card in &hand.cards {
-        typeln(&card.name(), &config);
+        typeln(&format!("|{}", &card.name()), &config);
         thread::sleep(config.typing_line_delay);
     }
     typeln(&String::new(), &config);
