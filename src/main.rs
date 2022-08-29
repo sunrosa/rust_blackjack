@@ -320,7 +320,7 @@ fn quit(config: &Configuration, stats: &Statistics) {
     // Print statistics
     typeln(
         &String::from(format!(
-            "Final wallet: {wallet}\nHands played: {handsplayed}\nTotal won: {totalwon}\nTotal bet: {totalbet}\nWins: {wins}\nLosses: {losses}\nPure wins: {pwins}\nPure losses: {plosses}\nBlackjacks: {blackjacks}\nBusts: {busts}\nDealer busts: {dbusts}",
+            "Final wallet: {wallet}\nHands played: {handsplayed}\nTotal won: {totalwon} / Total bet: {totalbet}\nWins: {wins} / Losses: {losses}\nPure wins: {pwins} / Pure losses: {plosses}\nBlackjacks: {blackjacks}\nBusts: {busts}\nDealer busts: {dbusts}",
             wallet = stats.wallet,
             handsplayed = stats.hands_played,
             totalwon = stats.total_won,
