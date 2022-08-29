@@ -5,15 +5,24 @@ fn main() {
     let cfg = Config {
         typing_delay: std::time::Duration::from_millis(15),
         typing_line_delay: Duration::from_millis(75),
+        starting_wallet: 100,
+        minimum_bet: 5,
     };
+    let mut wallet = cfg.starting_wallet;
 
     // Hand loop
     loop {
+        if wallet < cfg.minimum_bet {
+            typeln(&String::from("Game over!"), &cfg);
+            break;
+        }
+
         // Define game state
         let mut deck = deckofcards::Deck::new();
         let mut player_hand = deckofcards::Hand::new();
         let mut dealer_hand = deckofcards::Hand::new();
         let mut result = GameResult::Unfinished;
+        let mut bet = 0;
 
         // Initialize game
         deckofcards::Cards::shuffle(&mut deck);
@@ -21,6 +30,34 @@ fn main() {
         deck.deal_to_hand(&mut dealer_hand, 1);
         deck.deal_to_hand(&mut player_hand, 1);
         deck.deal_to_hand(&mut dealer_hand, 1);
+
+        typeln(&format!("Wallet: {}", wallet), &cfg);
+
+        // Input bet
+        loop {
+            print!("Bet> ");
+            std::io::Write::flush(&mut std::io::stdout());
+
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input);
+            input = String::from(input.trim());
+            match input.parse::<i32>() {
+                Ok(i) => {
+                    if i < cfg.minimum_bet {
+                        println!("You must bet above the minimum bet of {}.", cfg.minimum_bet);
+                    } else if i > wallet {
+                        println!("You only have {} left in your wallet.", wallet)
+                    } else {
+                        bet = i;
+                        wallet -= bet;
+                        break;
+                    }
+                }
+                Err(e) => {
+                    println!("Please enter a valid integer.")
+                }
+            }
+        }
 
         // Print initial game state to user
         typeln(&String::from("Your hand:"), &cfg);
@@ -72,7 +109,9 @@ fn main() {
                         result = GameResult::DealerBust;
                     } else if player_hand_value > dealer_hand_value && player_hand_value <= 21 {
                         result = GameResult::Win;
-                    } else if player_hand_value == dealer_hand_value {
+                    } else if player_hand_value == dealer_hand_value
+                        && !(player_hand_value == 21 && player_hand.cards.len() == 2)
+                    {
                         result = GameResult::Push;
                     } else if player_hand_value < dealer_hand_value {
                         result = GameResult::Loss;
@@ -89,12 +128,24 @@ fn main() {
         }
 
         match result {
-            GameResult::Win => typeln(&String::from("Win!"), &cfg),
+            GameResult::Win => {
+                typeln(&String::from("Win!"), &cfg);
+                wallet += bet * 2;
+            }
             GameResult::Loss => typeln(&String::from("Loss!"), &cfg),
-            GameResult::Blackjack => typeln(&String::from("Blackjack!!!"), &cfg),
+            GameResult::Blackjack => {
+                typeln(&String::from("Blackjack!!!"), &cfg);
+                wallet += bet * 2;
+            }
             GameResult::Bust => typeln(&String::from("Bust!"), &cfg),
-            GameResult::Push => typeln(&String::from("Push!"), &cfg),
-            GameResult::DealerBust => typeln(&String::from("Dealer bust!"), &cfg),
+            GameResult::Push => {
+                typeln(&String::from("Push!"), &cfg);
+                wallet += bet;
+            }
+            GameResult::DealerBust => {
+                typeln(&String::from("Dealer bust!"), &cfg);
+                wallet += bet * 2;
+            }
             GameResult::Unfinished => {
                 panic!(
                     "Game result should not be unfinished upon exit from game loop, and yet it is."
@@ -108,6 +159,8 @@ fn main() {
 struct Config {
     typing_delay: std::time::Duration,
     typing_line_delay: std::time::Duration,
+    starting_wallet: i32,
+    minimum_bet: i32,
 }
 
 enum GameResult {
