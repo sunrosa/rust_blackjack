@@ -23,7 +23,7 @@ fn main() {
         let mut deck = deckofcards::Deck::new();
         let mut player_hand = deckofcards::Hand::new();
         let mut dealer_hand = deckofcards::Hand::new();
-        let mut result = GameResult::Unfinished;
+        let mut result = data::GameResult::Unfinished;
         let bet: u32;
 
         // Initialize game
@@ -41,7 +41,9 @@ fn main() {
             std::io::Write::flush(&mut std::io::stdout()).expect("Could not flush stdio.");
 
             let mut input = String::new();
-            std::io::stdin().read_line(&mut input);
+            std::io::stdin()
+                .read_line(&mut input)
+                .expect("Could not read line from stdin.");
             input = String::from(input.trim());
             match input.parse::<u32>() {
                 Ok(i) => {
@@ -56,7 +58,7 @@ fn main() {
                         break;
                     }
                 }
-                Err(e) => {
+                Err(_) => {
                     if input == String::from("quit") {
                         quit(&cfg, &stats);
                     }
@@ -75,10 +77,10 @@ fn main() {
         ); // Print first card only in dealer's hand
 
         if hand_value(&player_hand) == 21 && player_hand.cards.len() as u8 == 2 {
-            result = GameResult::Blackjack;
+            result = data::GameResult::Blackjack;
         }
         // Command loop
-        if result == GameResult::Unfinished {
+        if result == data::GameResult::Unfinished {
             loop {
                 // Print prompt
                 print!("> ");
@@ -97,7 +99,7 @@ fn main() {
                         type_hand(&player_hand, &cfg);
 
                         if hand_value(&player_hand) > 21 {
-                            result = GameResult::Bust;
+                            result = data::GameResult::Bust;
                             break;
                         }
                     }
@@ -114,19 +116,19 @@ fn main() {
                         let player_hand_value = hand_value(&player_hand);
                         let dealer_hand_value = hand_value(&dealer_hand);
                         if player_hand_value > 21 {
-                            result = GameResult::Bust;
+                            result = data::GameResult::Bust;
                         } else if player_hand_value == 21 && player_hand.cards.len() == 2 {
-                            result = GameResult::Blackjack;
+                            result = data::GameResult::Blackjack;
                         } else if dealer_hand_value > 21 && player_hand_value <= 21 {
-                            result = GameResult::DealerBust;
+                            result = data::GameResult::DealerBust;
                         } else if player_hand_value > dealer_hand_value && player_hand_value <= 21 {
-                            result = GameResult::Win;
+                            result = data::GameResult::Win;
                         } else if player_hand_value == dealer_hand_value
                             && !(player_hand_value == 21 && player_hand.cards.len() == 2)
                         {
-                            result = GameResult::Push;
+                            result = data::GameResult::Push;
                         } else if player_hand_value < dealer_hand_value {
-                            result = GameResult::Loss;
+                            result = data::GameResult::Loss;
                         }
 
                         break;
@@ -141,35 +143,35 @@ fn main() {
         }
 
         match result {
-            GameResult::Win => {
+            data::GameResult::Win => {
                 typeln(&String::from("Win!"), &cfg);
                 stats.increase_wallet(bet * 2);
                 stats.pure_win();
             }
-            GameResult::Loss => {
+            data::GameResult::Loss => {
                 typeln(&String::from("Loss!"), &cfg);
                 stats.pure_loss();
             }
-            GameResult::Blackjack => {
+            data::GameResult::Blackjack => {
                 typeln(&String::from("Blackjack!!!"), &cfg);
                 stats.increase_wallet(bet * 2);
                 stats.blackjack();
             }
-            GameResult::Bust => {
+            data::GameResult::Bust => {
                 typeln(&String::from("Bust!"), &cfg);
                 stats.bust();
             }
-            GameResult::Push => {
+            data::GameResult::Push => {
                 typeln(&String::from("Push!"), &cfg);
                 stats.increase_wallet(bet);
                 stats.push();
             }
-            GameResult::DealerBust => {
+            data::GameResult::DealerBust => {
                 typeln(&String::from("Dealer bust!"), &cfg);
                 stats.increase_wallet(bet * 2);
                 stats.dealer_bust();
             }
-            GameResult::Unfinished => {
+            data::GameResult::Unfinished => {
                 panic!(
                     "Game result should not be unfinished upon exit from game loop, and yet it is."
                 )
@@ -177,17 +179,6 @@ fn main() {
         }
         println!("================");
     }
-}
-
-#[derive(PartialEq)]
-enum GameResult {
-    Win,
-    Loss,
-    Blackjack,
-    Bust,
-    Push,
-    DealerBust,
-    Unfinished,
 }
 
 fn typeln(output: &String, config: &data::Configuration) {

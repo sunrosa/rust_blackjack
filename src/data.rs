@@ -121,3 +121,14 @@ pub struct Configuration {
     pub starting_wallet: u32,
     pub minimum_bet: u32,
 }
+
+#[derive(PartialEq)]
+pub enum GameResult {
+    Win,
+    Loss,
+    Blackjack,
+    Bust,
+    Push,
+    DealerBust,
+    Unfinished,
+}
