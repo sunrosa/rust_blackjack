@@ -41,7 +41,7 @@ fn main() {
             let mut input = String::new();
             std::io::stdin().read_line(&mut input);
             input = String::from(input.trim());
-            match input.parse::<i32>() {
+            match input.parse::<u32>() {
                 Ok(i) => {
                     if i < cfg.minimum_bet {
                         println!("You must bet above the minimum bet of {}.", cfg.minimum_bet);
@@ -169,18 +169,18 @@ fn main() {
 struct Configuration {
     typing_delay: std::time::Duration,
     typing_line_delay: std::time::Duration,
-    starting_wallet: i32,
-    minimum_bet: i32,
+    starting_wallet: u32,
+    minimum_bet: u32,
 }
 
 struct Statistics {
-    wallet: i32,
-    hands_played: i32,
-    total_bet: i32,
-    total_won: i32,
-    total_wins: i32,
-    total_losses: i32,
-    total_draws: i32,
+    wallet: u32,
+    hands_played: u32,
+    total_bet: u32,
+    total_won: u32,
+    total_wins: u32,
+    total_losses: u32,
+    total_draws: u32,
 }
 
 impl Statistics {
@@ -196,11 +196,11 @@ impl Statistics {
         }
     }
 
-    fn increase_wallet(&mut self, amount: i32) {
+    fn increase_wallet(&mut self, amount: u32) {
         self.wallet += amount;
         self.total_won += amount;
     }
-    fn decrease_wallet(&mut self, amount: i32) {
+    fn decrease_wallet(&mut self, amount: u32) {
         self.wallet -= amount;
         self.total_bet += amount;
     }
