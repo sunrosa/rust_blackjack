@@ -120,6 +120,7 @@ pub struct Configuration {
     pub typing_line_delay: std::time::Duration,
     pub starting_wallet: u32,
     pub minimum_bet: u32,
+    pub currency_prefix: String,
 }
 
 #[derive(PartialEq)]

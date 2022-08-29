@@ -9,6 +9,7 @@ fn main() {
         typing_line_delay: Duration::from_millis(75),
         starting_wallet: 100,
         minimum_bet: 5,
+        currency_prefix: String::from("$"),
     };
     let mut stats = data::Statistics::new(&cfg);
 
@@ -33,7 +34,10 @@ fn main() {
         deck.deal_to_hand(&mut player_hand, 1);
         deck.deal_to_hand(&mut dealer_hand, 1);
 
-        typeln(&format!("Wallet: {}", stats.get_wallet()), &cfg);
+        typeln(
+            &format!("Wallet: {}{}", &cfg.currency_prefix, stats.get_wallet()),
+            &cfg,
+        );
 
         // Input bet
         loop {
@@ -240,7 +244,7 @@ fn quit(config: &data::Configuration, stats: &data::Statistics) {
     // Print statistics
     typeln(
         &String::from(format!(
-            "Final wallet: {wallet}\nHands played: {handsplayed}\nTotal won: {totalwon} / Total bet: {totalbet}\nAverage bet: {averagebet}\nWins: {wins} / Draws: {draws} / Losses: {losses}\nPure wins: {pwins} / Pure losses: {plosses}\nBlackjacks: {blackjacks}\nBusts: {busts}\nDealer busts: {dbusts}",
+            "Final wallet: {cur_prefix}{wallet}\nHands played: {handsplayed}\nTotal won: {cur_prefix}{totalwon} / Total bet: {cur_prefix}{totalbet}\nAverage bet: {cur_prefix}{averagebet}\nWins: {wins} / Draws: {draws} / Losses: {losses}\nPure wins: {pwins} / Pure losses: {plosses}\nBlackjacks: {blackjacks}\nBusts: {busts}\nDealer busts: {dbusts}",
             wallet = stats.get_wallet(),
             handsplayed = stats.get_hands_played(),
             totalwon = stats.get_total_won(),
@@ -253,7 +257,8 @@ fn quit(config: &data::Configuration, stats: &data::Statistics) {
             plosses = stats.get_total_pure_losses(),
             blackjacks = stats.get_total_blackjacks(),
             busts = stats.get_total_busts(),
-            dbusts = stats.get_total_dealer_busts()
+            dbusts = stats.get_total_dealer_busts(),
+            cur_prefix = config.currency_prefix
         )),
         &config,
     );
