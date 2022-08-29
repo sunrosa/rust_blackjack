@@ -74,65 +74,69 @@ fn main() {
             &cfg,
         ); // Print first card only in dealer's hand
 
+        if hand_value(&player_hand) == 21 && player_hand.cards.len() as u8 == 2 {
+            result = GameResult::Blackjack;
+        }
         // Command loop
-        loop {
-            // Print prompt
-            print!("> ");
-            std::io::Write::flush(&mut std::io::stdout()).expect("Could not flush stdio.");
+        if result == GameResult::Unfinished {
+            loop {
+                // Print prompt
+                print!("> ");
+                std::io::Write::flush(&mut std::io::stdout()).expect("Could not flush stdio.");
 
-            // Read and format user input
-            let mut input = String::new();
-            std::io::stdin().read_line(&mut input);
-            input = String::from(input.trim());
+                // Read and format user input
+                let mut input = String::new();
+                std::io::stdin()
+                    .read_line(&mut input)
+                    .expect("Error reading line from stdin.");
+                input = String::from(input.trim());
 
-            match input.as_str() {
-                "hit" => {
-                    deck.deal_to_hand(&mut player_hand, 1);
-                    type_hand(&player_hand, &cfg);
+                match input.as_str() {
+                    "hit" => {
+                        deck.deal_to_hand(&mut player_hand, 1);
+                        type_hand(&player_hand, &cfg);
 
-                    if hand_value(&player_hand) > 21 {
-                        result = GameResult::Bust;
+                        if hand_value(&player_hand) > 21 {
+                            result = GameResult::Bust;
+                            break;
+                        }
+                    }
+                    "stand" => {
+                        typeln(&String::from("Dealer hand:"), &cfg);
+
+                        // Dealer hit below 16
+                        while hand_value(&dealer_hand) <= 16 {
+                            deck.deal_to_hand(&mut dealer_hand, 1);
+                        }
+
+                        type_hand(&dealer_hand, &cfg);
+
+                        let player_hand_value = hand_value(&player_hand);
+                        let dealer_hand_value = hand_value(&dealer_hand);
+                        if player_hand_value > 21 {
+                            result = GameResult::Bust;
+                        } else if player_hand_value == 21 && player_hand.cards.len() == 2 {
+                            result = GameResult::Blackjack;
+                        } else if dealer_hand_value > 21 && player_hand_value <= 21 {
+                            result = GameResult::DealerBust;
+                        } else if player_hand_value > dealer_hand_value && player_hand_value <= 21 {
+                            result = GameResult::Win;
+                        } else if player_hand_value == dealer_hand_value
+                            && !(player_hand_value == 21 && player_hand.cards.len() == 2)
+                        {
+                            result = GameResult::Push;
+                        } else if player_hand_value < dealer_hand_value {
+                            result = GameResult::Loss;
+                        }
+
                         break;
-                    } else if hand_value(&player_hand) == 21 && player_hand.cards.len() == 2 {
-                        result = GameResult::Blackjack;
-                        break;
                     }
-                }
-                "stand" => {
-                    typeln(&String::from("Dealer hand:"), &cfg);
-
-                    // Dealer hit below 16
-                    while hand_value(&dealer_hand) <= 16 {
-                        deck.deal_to_hand(&mut dealer_hand, 1);
+                    "help" => {
+                        println!("hit: Receive an additional card for your hand.\nstand: Keep your current hand and advance the game.\nhelp: Print help.\nquit: Quit the program.")
                     }
-
-                    type_hand(&dealer_hand, &cfg);
-
-                    let player_hand_value = hand_value(&player_hand);
-                    let dealer_hand_value = hand_value(&dealer_hand);
-                    if player_hand_value > 21 {
-                        result = GameResult::Bust;
-                    } else if player_hand_value == 21 && player_hand.cards.len() == 2 {
-                        result = GameResult::Blackjack;
-                    } else if dealer_hand_value > 21 && player_hand_value <= 21 {
-                        result = GameResult::DealerBust;
-                    } else if player_hand_value > dealer_hand_value && player_hand_value <= 21 {
-                        result = GameResult::Win;
-                    } else if player_hand_value == dealer_hand_value
-                        && !(player_hand_value == 21 && player_hand.cards.len() == 2)
-                    {
-                        result = GameResult::Push;
-                    } else if player_hand_value < dealer_hand_value {
-                        result = GameResult::Loss;
-                    }
-
-                    break;
+                    "quit" => quit(&cfg, &stats),
+                    _ => println!("Invalid command! Type \"help\" for more information."),
                 }
-                "help" => {
-                    println!("hit: Receive an additional card for your hand.\nstand: Keep your current hand and advance the game.\nhelp: Print help.\nquit: Quit the program.")
-                }
-                "quit" => quit(&cfg, &stats),
-                _ => println!("Invalid command! Type \"help\" for more information."),
             }
         }
 
@@ -175,6 +179,7 @@ fn main() {
     }
 }
 
+#[derive(PartialEq)]
 enum GameResult {
     Win,
     Loss,
